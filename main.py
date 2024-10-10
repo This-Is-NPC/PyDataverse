@@ -3,9 +3,9 @@ from fastapi import FastAPI, Depends, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from dependencies import azure_scheme
+from core.dependencies import azure_scheme
 from fastapi_azure_auth.user import User
-from config import settings
+from core.config import settings
 #from ms_dataverse import DataverseORM
 
 @asynccontextmanager
