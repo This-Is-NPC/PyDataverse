@@ -6,7 +6,7 @@ from pydantic import AnyHttpUrl, computed_field
 from pydantic_settings import BaseSettings
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-
+#from ms_dataverse import DataverseORM
 
 class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = ['http://localhost:8000']
@@ -80,6 +80,10 @@ azure_scheme = SingleTenantAzureAuthorizationCodeBearer(
 @app.get("/", dependencies=[Security(azure_scheme)])
 async def root():
     return {"message": "Hello World"}
+
+@app.get("/list-tables", dependencies=[Security(azure_scheme)])
+async def list_tables():
+    return {"message": settings.OPENAPI_TOKEN_URL}
 
 
 if __name__ == '__main__':
