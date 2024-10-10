@@ -1,48 +1,12 @@
 import uvicorn
-from fastapi import FastAPI, Security
+from fastapi import FastAPI, Depends, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_azure_auth import SingleTenantAzureAuthorizationCodeBearer
-from pydantic import AnyHttpUrl, computed_field
-from pydantic_settings import BaseSettings
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+from dependencies import azure_scheme
+from fastapi_azure_auth.user import User
+from config import settings
 #from ms_dataverse import DataverseORM
-
-class Settings(BaseSettings):
-    BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = ['http://localhost:8000']
-    OPENAPI_CLIENT_ID: str = ""
-    APP_CLIENT_ID: str = ""
-    TENANT_ID: str = ""
-    SCOPE_DESCRIPTION: str = "user_impersonation"
-
-    @computed_field
-    @property
-    def SCOPE_NAME(self) -> str:
-        return f'api://{self.APP_CLIENT_ID}/{self.SCOPE_DESCRIPTION}'
-
-    @computed_field
-    @property
-    def SCOPES(self) -> dict:
-        return {
-            self.SCOPE_NAME: self.SCOPE_DESCRIPTION,
-        }
-
-    @computed_field
-    @property
-    def OPENAPI_AUTHORIZATION_URL(self) -> str:
-        return f"https://login.microsoftonline.com/{self.TENANT_ID}/oauth2/v2.0/authorize"
-
-    @computed_field
-    @property
-    def OPENAPI_TOKEN_URL(self) -> str:
-        return f"https://login.microsoftonline.com/{self.TENANT_ID}/oauth2/v2.0/token"
-
-    class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
-        case_sensitive = True
-
-settings = Settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -70,21 +34,21 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=['*'],
     )
 
-
-azure_scheme = SingleTenantAzureAuthorizationCodeBearer(
-    app_client_id=settings.APP_CLIENT_ID,
-    tenant_id=settings.TENANT_ID,
-    scopes=settings.SCOPES,
-)
-
 @app.get("/", dependencies=[Security(azure_scheme)])
 async def root():
     return {"message": "Hello World"}
 
 @app.get("/list-tables", dependencies=[Security(azure_scheme)])
-async def list_tables():
-    return {"message": settings.OPENAPI_TOKEN_URL}
+async def list_tables(request: Request):
+    return {"message": request.state}
 
+@app.get("/hello-user",
+    response_model=User,
+    operation_id='helloWorldApiKey',
+    dependencies=[Depends(azure_scheme)]
+)
+async def hello_user(request: Request) -> dict[str, bool]:
+    return request.state.user.dict()
 
 if __name__ == '__main__':
     uvicorn.run('main:app', reload=True)

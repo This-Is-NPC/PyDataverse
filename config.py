@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 import pydantic
-from pydantic import AnyHttpUrl, Field, HttpUrl
+from pydantic import AnyHttpUrl, computed_field, Field, HttpUrl
 
 if pydantic.VERSION.startswith('1.'):
     from pydantic import BaseSettings
@@ -18,6 +18,19 @@ class AzureActiveDirectory(BaseSettings):  # type: ignore[misc, valid-type]
     TOKEN_URL: AnyHttpUrl = Field(default='https://dummy.com/')
     GRAPH_SECRET: str = Field(default='')
     CLIENT_SECRET: str = Field(default='')
+    SCOPE_DESCRIPTION: str = "user_impersonation"
+
+    @computed_field
+    @property
+    def SCOPE_NAME(self) -> str:
+        return f'api://{self.APP_CLIENT_ID}/{self.SCOPE_DESCRIPTION}'
+    
+    @computed_field
+    @property
+    def SCOPES(self) -> dict:
+        return {
+            self.SCOPE_NAME: self.SCOPE_DESCRIPTION,
+        }
 
 
 class Settings(AzureActiveDirectory):
