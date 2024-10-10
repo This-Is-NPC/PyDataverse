@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Optional
 
-from config import settings
+from core.config import settings
 from fastapi import Depends
 from fastapi.security.api_key import APIKeyHeader
 
 from fastapi_azure_auth import (
-    B2CMultiTenantAuthorizationCodeBearer,
     MultiTenantAzureAuthorizationCodeBearer,
     SingleTenantAzureAuthorizationCodeBearer,
 )
@@ -73,46 +72,4 @@ azure_scheme_auto_error_false = MultiTenantAzureAuthorizationCodeBearer(
     auto_error=False,
 )
 
-azure_scheme_auto_error_false_b2c = B2CMultiTenantAuthorizationCodeBearer(
-    app_client_id=settings.APP_CLIENT_ID,
-    openapi_authorization_url=str(settings.AUTH_URL),
-    openapi_token_url=str(settings.TOKEN_URL),
-    openid_config_url=str(settings.CONFIG_URL),
-    scopes={
-        f'api://{settings.APP_CLIENT_ID}/user_impersonation': 'User impersonation',
-    },
-    validate_iss=True,
-    iss_callable=issuer_fetcher,
-    auto_error=False,
-)
-
-
 api_key_auth_auto_error_false = APIKeyHeader(name='TEST-API-KEY', auto_error=False)
-
-
-async def multi_auth(
-    azure_auth: Optional[User] = Depends(azure_scheme_auto_error_false),
-    api_key: Optional[str] = Depends(api_key_auth_auto_error_false),
-) -> Union[User, str]:
-    """
-    Example implementation.
-    """
-    if azure_auth:
-        return azure_auth
-    if api_key == 'JonasIsCool':
-        return api_key
-    raise InvalidAuthHttp('You must either provide a valid bearer token or API key')
-
-
-async def multi_auth_b2c(
-    azure_auth: Optional[User] = Depends(azure_scheme_auto_error_false_b2c),
-    api_key: Optional[str] = Depends(api_key_auth_auto_error_false),
-) -> Union[User, str]:
-    """
-    Example implementation.
-    """
-    if azure_auth:
-        return azure_auth
-    if api_key == 'JonasIsCool':
-        return api_key
-    raise InvalidAuthHttp('You must either provide a valid bearer token or API key')

@@ -33,22 +33,18 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=['*'],
         allow_headers=['*'],
     )
+#Return user state
+def get_user_access_token(user: User) -> dict[str, str]:
+    return {"access_token": user.access_token}
 
 @app.get("/", dependencies=[Security(azure_scheme)])
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/list-tables", dependencies=[Security(azure_scheme)])
-async def list_tables(request: Request):
-    return {"message": request.state}
-
-@app.get("/hello-user",
-    response_model=User,
-    operation_id='helloWorldApiKey',
-    dependencies=[Depends(azure_scheme)]
-)
-async def hello_user(request: Request) -> dict[str, bool]:
-    return request.state.user.dict()
+@app.get("/list-tables", dependencies=[Depends(azure_scheme)])
+async def list_tables(request: Request) -> dict[str, str]:
+    response = get_user_access_token(request.state.user)
+    return response
 
 if __name__ == '__main__':
     uvicorn.run('main:app', reload=True)
